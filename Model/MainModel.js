@@ -1,124 +1,116 @@
+import {months} from "../Utils/utils.js"
+
+// workout model
 class Workout {    
-    constructor(id,time,distance, type, coords) {
-        this.time = time;
+    constructor(id,duration,distance, type, coords) {
+        this.duration = duration;
         this.distance = distance;
         this.type = type;
         this.coords = coords;
         this.id = id;
         this.date = new Date();
+        this.setDescription();
+        
     }
 
+    setDescription() {
+        const month = months[this.date.getMonth()]
+        this.description = `${this.type[0].toUpperCase()}${this.type.slice(1)} on ${month} ${this.date.getDate()}`;
+    }
 
 }
 
 class Cycling extends Workout {
-    constructor(id,time,distance, coords, elevationGain) {
-        super(id, time, distance, "cycling", coords);
+    constructor(id,duration,distance, coords, elevationGain) {
+        super(id, duration, distance, "cycling", coords);
         this.elevationGain = elevationGain;
         this.calculateSpeed();
     }
 
     calculateSpeed() {
         // km / h
-        this.speed =  Math.round((this.distance / (this.time / 60)) * 100) / 100
+        this.speed =  Math.round((this.distance / (this.duration / 60)) * 100) / 100
     }
 }
 
 class Running extends Workout {
-    constructor(id, time, distance, coords, cadence) {
-        super(id, time, distance, "running", coords)
+    constructor(id, duration, distance, coords, cadence) {
+        super(id, duration, distance, "running", coords)
         this.cadence = cadence;
         this.calculatePace()
     }
 
     calculatePace() {
         // min/km
-        this.speed = Math.round((this.time / this.distance) * 100) / 100 
+        this.speed = Math.round((this.duration / this.distance) * 100) / 100 
     }
 }
 
 class Model {
     constructor() {
-        this.cyclingWorkouts = [];
-        this.runningWorkouts = [];
+        this.workouts = []
     }
 
+    // save all of the workouts in local storage
     saveInLocalStorage() {
-        window.localStorage.setItem('cyclingWorkouts', JSON.stringify(this.cyclingWorkouts))
-        window.localStorage.setItem('runningWorkouts',JSON.stringify(this.runningWorkouts))
+        window.localStorage.setItem('workouts', JSON.stringify(this.workouts))
     }
-
+    // load all the data from local storage
     loadDataFromLocalStorage() {
-        const cyclingWorkouts = JSON.parse(window.localStorage.getItem('cyclingWorkouts'))
-        const runningWorkouts = JSON.parse(window.localStorage.getItem('runningWorkouts'))
+        const workouts = JSON.parse(window.localStorage.getItem('workouts'))
 
-        if (cyclingWorkouts.length > 0) {
-            this.cyclingWorkouts.push(...cyclingWorkouts)
-        }
-        if (runningWorkouts.length > 0) {
-            this.runningWorkouts.push(...runningWorkouts)
+        if (workouts) {
+            workouts.forEach(el => {
+                el.date = new Date(el.date)
+            })
+            this.workouts.push(...workouts)
         }
 
-        return { "cyclingWorkouts":this.cyclingWorkouts, "runningWorkouts":this.runningWorkouts}
+
+        return this.workouts;
     }
-
-    getNextId(workoutlist) {
-        if (workoutlist.length == 0) {
+    // the the id of the next workout
+    // the next id will be the id of the last element + 1 
+    getNextId() {
+        if (this.workouts.length == 0) {
             return 0;
         } 
-        console.log(workoutlist.at(-1).id)
-        return workoutlist.at(-1).id + 1
+        return this.workouts.at(-1).id + 1
         
     }
 
-    addCyclingWorkout(time, distance, coords, elevationGain) {
-        const cyclingWorkout = new Cycling(this.getNextId(this.cyclingWorkouts), time, distance, coords, elevationGain)
-        this.cyclingWorkouts.push(cyclingWorkout)
-        this.saveInLocalStorage()
-        return cyclingWorkout
+    addWorkout(data) {
+        let workout;
+        if (data.type === "running") {
+            workout = new Running(this.getNextId(), data.duration, data.distance, data.coords, data.cadence)
+        }  else {
+            workout = new Cycling(this.getNextId(), data.duration, data.distance, data.coords, data.elevGain)
+        }
+        this.workouts.push(workout);
+        this.saveInLocalStorage();
+        return workout;
     }
 
-    addRunningWorkout(time, distance, coords, cadence) {
-        const runningWorkout = new Running(this.getNextId(this.runningWorkouts), time, distance, coords, cadence)
-        this.runningWorkouts.push(runningWorkout)
-        this.saveInLocalStorage()
-        return runningWorkout
-    }
-
-    getCoordinatesOfWorkout(type, id) {
-        const workout = this.findWorkout(type, id)
+    // search for a workout with the id and return its coordinates
+    getCoordinatesOfWorkout(id) {
+        const workout = this.findWorkout(id)
         if (!workout) {return null;}
         return workout.coords;
     }
 
-    findWorkout(type, id) {
-        let workout;
-        if (type == "running") {
-            workout = this.runningWorkouts.find(el => el.id == id)
-        } else {
-            workout = this.cyclingWorkouts.find(el => el.id == id)
-        }
-        return workout;
+    findWorkout(id) {
+        return this.workouts.find(el => el.id === parseInt(id))
     }
 
-    deleteWorkout(type, id) {
-        if (type == "running") {
-            const index = this.runningWorkouts.findIndex(el => el.id == id);
-            if (index != - 1) {
-                this.runningWorkouts.splice(index)  
-                this.saveInLocalStorage()
-                return true
-            }
-            return false
-        } else {
-            const index = this.cyclingWorkouts.findIndex(el => el.id == id);
-            if (index != -1) {
-                this.cyclingWorkouts.splice(index)
-                this.saveInLocalStorage()
-                return true;
-            }
-            return false;
-        }
+    deleteWorkout(id) {
+       const index = this.workouts.findIndex(el => el.id === parseInt(id));
+       console.log(index)
+       if (index != -1) {
+           this.workouts.splice(index, 1)
+           this.saveInLocalStorage();
+           return true
+       }
+       return false
     }
 
 }

@@ -1,17 +1,21 @@
-import {DOMElements, formatDate, getCyclcingHTMLString, getRunningHTMLString} from "../Utils/utils.js"
+import {DOMElements, workoutHtmlString} from "../Utils/utils.js"
 class View {
 
     constructor() {
+        // initial zoom
         this._zoom = 13;
+        // what initial state the form should have
         this.formState = "cadence"
+        // creates a map to store the markers
         this.markers = new Map();
     }
 
+    // used to set the zoom
     set zoom(zoom) {
         this._zoom = zoom; 
     }
 
-
+    // loads the map
     loadMap(coords) {
         const map = L.map('map').setView([coords.latitude, coords.longitude], this._zoom);
 
@@ -25,98 +29,92 @@ class View {
     }
 
     setMarker(coords, date, id)  {
-        console.log(date)
-        const marker = L.marker([coords.latitude, coords.longitude]).addTo(this.map)
+        const marker = L.marker([coords.lat, coords.lng]).addTo(this.map)
         .bindPopup(date)
         .openPopup();
         this.markers.set(id, marker)
     }
 
     deleteMarker(id) {
-        console.log(id)
-        console.log(this.markers)
-        console.log(this.markers.get(id))
-        this.map.removeLayer(this.markers.get(id))
+        this.map.removeLayer(this.markers.get(parseInt(id)))
         this.markers.delete(id)
-        
     }
 
+    // remove the hidden class from the form
     showForm() {
         DOMElements.get("form").classList.remove("hidden")
     }
 
+    // add the hidden class to remove it again
     removeForm() {
+        DOMElements.get("form").style.display='none'
         DOMElements.get("form").classList.add("hidden")
+        setTimeout(() => {
+            DOMElements.get("form").style.display="grid"
+        })
     }
 
-    switchElevGainAndCadence(switchTo) {
-        if (switchTo === "cadence") {
-            this.formState = "cadence"
-            DOMElements.get("inputCadence").parentNode.classList.remove(DOMElements.get("formRowHidden"))
-            DOMElements.get("inputElevation").parentNode.classList.add(DOMElements.get("formRowHidden"));
-        } else if (switchTo="elevGain") {
-            this.formState = "elevGain"
-            DOMElements.get("inputCadence").parentNode.classList.add(DOMElements.get("formRowHidden"))
-            DOMElements.get("inputElevation").parentNode.classList.remove(DOMElements.get("formRowHidden"));
-        }
+    // switch the form input for cadence and elevation gain in the form
+    switchElevGainAndCadence() {
+        this.formState = this.formState == "elevGain" ? "cadence" : "elevGain"
+        DOMElements.get("inputCadence").parentNode.classList.toggle(DOMElements.get("formRowHidden"))
+        DOMElements.get("inputElevation").parentNode.classList.toggle(DOMElements.get("formRowHidden"))
+
     }
 
     clearForm() {
-        ["inputDistance", "inputDuration"].forEach(el => {
+        // clears the field for distance and duration
+        ["inputDistance", "inputDuration", "inputElevation", "inputCadence"].forEach(el => {
             DOMElements.get(el).value = ""
         })
+        // if the input is set to elevGain -> set it to running
         if (this.formState === "elevGain") {
             DOMElements.get("inputType").value = "running"
-            this.switchElevGainAndCadence("cadence")
-            DOMElements.get("inputElevation").value = ""
-            return;
+            this.switchElevGainAndCadence()
+            
         } 
-        DOMElements.get("inputCadence").value = ""
-
     }
-
+    // get the form inputs
     getFormInput() {
         const inputValues = {}
-        inputValues["distance"] = DOMElements.get("inputDistance").value
+        inputValues["distance"] = parseFloat(DOMElements.get("inputDistance").value)
         
-        inputValues["duration"] = DOMElements.get("inputDuration").value
+        inputValues["duration"] = parseFloat(DOMElements.get("inputDuration").value)
         
         inputValues["type"] = DOMElements.get("inputType").value
         
 
         if (inputValues.type == "running") {
-            inputValues["cadence"] = DOMElements.get("inputCadence").value
+            inputValues["cadence"] = parseFloat(DOMElements.get("inputCadence").value)
         } else {
-            inputValues["elevation"] = DOMElements.get("inputElevation").value
+            inputValues["elevGain"] = parseFloat(DOMElements.get("inputElevation").value)
         }
         for(const value of Object.values(inputValues)) {
-            if (!value) return null
+            console.log(inputValues)
+            // if one of the values is empty or nan, remove nan
+            if ((typeof(value) === "number") && value < 0) {   
+                return null}
+            if (!value && value != 0) return null
         }
+
+        console.log(inputValues)
+
         return inputValues;
 
     }
-
-
-    renderWorkout(workout) {
-        console.log(workout)
-        const date = formatDate(workout.date)
-        let htmlString;
-        if (workout.type == "running") {
-            console.log(workout.cadence)
-            htmlString = getRunningHTMLString(workout.id, date, workout.distance, workout.time, workout.speed, workout.cadence)
-        } else {
-            htmlString = getCyclcingHTMLString(workout.id,date, workout.distance, workout.time, workout.speed, workout.elevationGain)
-        } 
-        DOMElements.get("containerWorkouts").insertAdjacentHTML("beforeend", htmlString)
+    // render a workout in the sidebar
+    renderWorkout(workout) {   
+        // insert the html
+        DOMElements.get("form").insertAdjacentHTML("afterend", workoutHtmlString(workout))
     }
 
+    // change the map focus to a new workout
     changeMapFocus(coords) {
         this.map.panTo(new L.LatLng(coords.lat, coords.lng));
     }
-
+    // delete a workout
     deleteWorkout(dataId) {
         const selection =   document.querySelector(`[data-id="${dataId}"]`);
-        console.log(selection)
         selection.remove();
     }
 

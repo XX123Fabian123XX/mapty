@@ -13,69 +13,64 @@ export const DOMElements = new Map([
  ["inputCadence" ,document.querySelector('.form__input--cadence')],
  ["inputElevation" ,document.querySelector('.form__input--elevation')],
  ["formRowHidden","form__row--hidden"],
- ["cross-bar","cross__bar"],
- ["cross", "cross"]
+ ["crossClass", ".cross"],
+ ["workoutClass", ".workout"]
 ])
 
 
-export const getCyclcingHTMLString = (id, date, distance, time, speed, elevationGain) => { 
-    
-    return `
-    <li class="workout workout--cycling" data-id="cycling-${id}">
+export const workoutHtmlString = (workout) => {
+  let html = `
+    <li class="workout workout--${workout.type}" data-id="${workout.id}">
     <div class="cross">
     <span class="cross__bar cross__bar--1"></span>
     <span class="cross__bar cross__bar--2"></span>
     </div>
-    <h2 class="workout__title">Cycling on ${date}</h2>
+    <h2 class="workout__title">${workout.description}</h2>
     <div class="workout__details">
-    <span class="workout__icon">🚴‍♀️</span>
-    <span class="workout__value">${distance}</span>
+    <span class="workout__icon">${workout.type === 'running' ? '🏃‍♂️' : '🚴‍♀️'}</span>
+    <span class="workout__value">${workout.distance}</span>
     <span class="workout__unit">km</span>
     </div>
     <div class="workout__details">
     <span class="workout__icon">⏱</span>
-    <span class="workout__value">${time}</span>
+    <span class="workout__value">${workout.duration}</span>
     <span class="workout__unit">min</span>
     </div>
     <div class="workout__details">
     <span class="workout__icon">⚡️</span>
-    <span class="workout__value">${speed}</span>
+    <span class="workout__value">${workout.speed}</span>
     <span class="workout__unit">km/h</span>
-    </div>
-    <div class="workout__details">
+    </div> `
+
+  if (workout.type === "cycling") {
+    html+=
+    `<div class="workout__details">
     <span class="workout__icon">⛰</span>
-    <span class="workout__value">${elevationGain}</span>
+    <span class="workout__value">${workout.elevationGain}</span>
     <span class="workout__unit">m</span>
     </div>
     </li> `
-    }
-
-    export const getRunningHTMLString = (id, date, distance, time, speed, cadence) => { 
-      return ` <li class="workout workout--running" data-id="running-${id}">
-      <div class="cross">
-      <span class="cross__bar cross__bar--1"></span>
-      <span class="cross__bar cross__bar--2"></span>
+  } else {
+    html +=
+    `
+    <div class="workout__details">
+    <span class="workout__icon">🦶🏼</span>
+    <span class="workout__value">${workout.cadence}</span>
+    <span class="workout__unit">spm</span>
     </div>
-      <h2 class="workout__title">Running on ${date}</h2>
-      <div class="workout__details">
-        <span class="workout__icon">🏃‍♂️</span>
-        <span class="workout__value">${distance}</span>
-        <span class="workout__unit">km</span>
-      </div>
-      <div class="workout__details">
-        <span class="workout__icon">⏱</span>
-        <span class="workout__value">${time}</span>
-        <span class="workout__unit">min</span>
-      </div>
-      <div class="workout__details">
-        <span class="workout__icon">⚡️</span>
-        <span class="workout__value">${speed}</span>
-        <span class="workout__unit">min/km</span>
-      </div>
-      <div class="workout__details">
-        <span class="workout__icon">🦶🏼</span>
-        <span class="workout__value">${cadence}</span>
-        <span class="workout__unit">spm</span>
-      </div>
-    </li>`
-      }
+    `
+  }
+  return html;
+}
+
+
+export const getLocation = () => {
+  return new Promise((resolve, reject) => {
+      navigator.geolocation.getCurrentPosition((success) => {
+          const {latitude, longitude} = success.coords;
+          resolve({latitude, longitude})
+      }, error => {
+          reject(error)
+      })
+  })
+}

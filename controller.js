@@ -1,112 +1,99 @@
 'use strict';
 // prettier-ignore
-import { DOMElements, formatDate } from "./Utils/utils.js";
+import { DOMElements, formatDate, getLocation } from "./Utils/utils.js";
 import {view} from "./View/MainView.js"
 import { model } from "./Model/MainModel.js";
 
 
 let lastClickedCoordinates = {}
 
-const getLocation = () => {
-    return new Promise((resolve, reject) => {
-        navigator.geolocation.getCurrentPosition((success) => {
-            const {latitude, longitude} = success.coords;
-            resolve({latitude, longitude})
-        }, error => {
-            reject(error)
-        })
-    })
-}
 
+
+// initializes the map listener that is triggered when the map is clicked
 const initMapListeners = (map) => {
     map.on('click', function(event) {
+        // saves the coordinates of the click
         lastClickedCoordinates = event.latlng;
-        // open up the form in the sidebar
+        // shows the form
         view.showForm();
-
     })
 }
 
-const initFormListener = function() {
-    DOMElements.get("inputType").addEventListener("click", event => {
-        if (event.target.value === "running") {
-            view.switchElevGainAndCadence("cadence")
-        } else if (event.target.value === "cycling") {
-            view.switchElevGainAndCadence("elevGain")
-        }
-    })
 
+const initSubmitFormListener = function() {
     DOMElements.get("form").addEventListener("submit", e => {
         e.preventDefault();
+        
+        // gets the form input
         const input = view.getFormInput()
+        // if it is undefined
         if (!input) return
+
+        // remove and clear the form
         view.removeForm()
         view.clearForm();
-        let workout;
-        if (input.type === "running") {
-            workout = model.addRunningWorkout(input.duration, input.distance, lastClickedCoordinates, input.cadence)   
-        } else {
-            workout = model.addCyclingWorkout(input.duration, input.distance, lastClickedCoordinates, input.elevation)
-        }
+
+        // set the coordinates
+        input.coords = lastClickedCoordinates;
+
+        // create a new workout
+        const workout = model.addWorkout(input)
+        
+        // render the workout
         view.renderWorkout(workout)
-         // set the marker
-        console.log(workout)
-        view.setMarker({latitude:lastClickedCoordinates.lat, longitude:lastClickedCoordinates.lng}, `${workout.type} on ${formatDate(workout.date)}`, `${workout.type}-${workout.id}`)
+
+         // set the marker for the workout
+        view.setMarker({lat:lastClickedCoordinates.lat, lng:lastClickedCoordinates.lng}, workout.description, workout.id)
     })
 }
 
+// creates an event listener for a click event on the workouts
 const initWorkoutListener = () => {
     DOMElements.get("containerWorkouts").addEventListener("click", e => {
-        let dataId;
-        // element should be deleted
-        const classList = Array.from(e.target.classList);
-        if (classList.includes(DOMElements.get("cross")) || classList.includes(DOMElements.get("cross-bar"))) {
-            const parentElement = e.target.parentNode
-            let dataId;
-            if (parentElement.getAttribute("data-id")) {
-                dataId = parentElement.getAttribute("data-id")
-            } else {
-                dataId = parentElement.parentNode.getAttribute("data-id")
-            }
+        // check if the cross was clicked to delete the item
+        const clickedElement = e.target;
 
-            const [type, id] = dataId.split("-")
-            model.deleteWorkout(type, id)
-            view.deleteMarker(dataId)
-            view.deleteWorkout(dataId);
-            return;
-        }
-        else if (e.target.getAttribute('data-id')) {
-            dataId = e.target.getAttribute('data-id')
-        } else if (e.target.parentNode.getAttribute('data-id')) {
-            dataId = e.target.parentNode.getAttribute('data-id')
-        } else if (e.target.parentNode.parentNode.getAttribute('data-id')) {
-            dataId = e.target.parentNode.parentNode.getAttribute('data-id')
-        } else {
+        // if  the cross was clicked, search for the cross element
+        // if it was not clicked it will be null
+        const crossElement = (clickedElement.closest(DOMElements.get("crossClass")))
+        if (crossElement) {
+            deleteWorkout(crossElement.getAttribute("data-id"))
             return
         }
-
-        const [type, id ] = dataId.split("-")
-        const coords = model.getCoordinatesOfWorkout(type,id)
+        // otherwise navigate to the workout on the map
+        // lookup the id
+        const id = clickedElement.closest(DOMElements.get("workoutClass")).getAttribute("data-id")
+        
+        // get the coordinates
+        const coords = model.getCoordinatesOfWorkout(id)
 
         if (!coords) {
             console.log("coordinates not found")
             return;
         }
-
+        // change  the map focus
         view.changeMapFocus(coords)
     })
 }
+// delete the workout
+const deleteWorkout = (id) => {
+    // delete the workout from the model
+    model.deleteWorkout(id)
+    // delete marker
+    view.deleteMarker(id)
+    // delete workout from sidebar
+    view.deleteWorkout(id);
+}
 
-const loadStaticData = function() {
-    const data = model.loadDataFromLocalStorage();
-    if (!data.cyclingWorkouts && !data.runningWorkouts) return;
-        const displayWorkout = (view) =>{
-            view.renderWorkout(workout)
-            view.setMarker({latitude:lastClickedCoordinates.lat, longitude:lastClickedCoordinates.lng}, `${workout.type} on ${formatDate(workout.date)}`, `${workout.type}-${workout.id}`)
-        }
-    // every workout has to be rendered to the sidebar and to the map
-    data.cyclingWorkouts.forEach(displayWorkout)
-    data.runningWorkouts.forEach(displayWorkout) 
+// load the static data
+const loadAndRenderLocalStorageData = function() {
+    // gets the workouts from the model
+    const workouts = model.loadDataFromLocalStorage();
+    // renders every workout
+    workouts.forEach(workout => {
+        view.renderWorkout(workout)
+        view.setMarker(workout.coords, `${workout.type} on ${formatDate(workout.date)}`, workout.id)
+    })
 }
 
 
@@ -118,16 +105,19 @@ const init = async () => {
     // loads the map
     const map = view.loadMap(coords)
 
-    loadStaticData();
+    loadAndRenderLocalStorageData();
 
     // used to listen to clicks on the map
     initMapListeners(map)
 
     // used to listen to changes on the form
-    initFormListener()
+    initSubmitFormListener();
+
+    // used to listen to changes on the type input field
+    DOMElements.get("inputType").addEventListener("change", view.switchElevGainAndCadence)
 
     // used for navigating to the destinations
-    initWorkoutListener();
+    initWorkoutListener();    
 }
 
 init();
