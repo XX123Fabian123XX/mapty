@@ -1,13 +1,13 @@
 import {months} from "./utils.js"
 
 // workout model
-class Workout {    
+export class Workout {    
     constructor(id,duration,distance, type, coords) {
-        this.duration = duration;
-        this.distance = distance;
-        this.type = type;
+        this.duration = parseFloat(duration);
+        this.distance = parseFloat(distance);
+        this.type = type.toLowerCase();
         this.coords = coords;
-        this.id = id;
+        this.id = parseInt(id);
         this.date = new Date();
         this.setDescription();
         
@@ -20,7 +20,7 @@ class Workout {
 
 }
 
-class Cycling extends Workout {
+export class Cycling extends Workout {
     constructor(id,duration,distance, coords, elevationGain) {
         super(id, duration, distance, "cycling", coords);
         this.elevationGain = elevationGain;
@@ -33,7 +33,7 @@ class Cycling extends Workout {
     }
 }
 
-class Running extends Workout {
+export class Running extends Workout {
     constructor(id, duration, distance, coords, cadence) {
         super(id, duration, distance, "running", coords)
         this.cadence = cadence;
@@ -104,7 +104,7 @@ class Model {
 
     deleteWorkout(id) {
        const index = this.workouts.findIndex(el => el.id === parseInt(id));
-       console.log(index)
+
        if (index != -1) {
            this.workouts.splice(index, 1)
            this.saveInLocalStorage();

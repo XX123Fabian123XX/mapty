@@ -39,7 +39,7 @@ export const workoutHtmlString = (workout) => {
     <div class="workout__details">
     <span class="workout__icon">⚡️</span>
     <span class="workout__value">${workout.speed}</span>
-    <span class="workout__unit">km/h</span>
+    <span class="workout__unit">${workout.type === 'running' ? "min/km" :"km/h"}  </span>
     </div> `
 
   if (workout.type === "cycling") {

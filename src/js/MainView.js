@@ -36,7 +36,6 @@ class View {
     }
 
     deleteMarker(id) {
-        console.log(id)
         this.map.removeLayer(this.markers.get(parseInt(id)))
         this.markers.delete(id)
     }
@@ -91,14 +90,11 @@ class View {
             inputValues["elevGain"] = parseFloat(DOMElements.get("inputElevation").value)
         }
         for(const value of Object.values(inputValues)) {
-            console.log(inputValues)
             // if one of the values is empty or nan, remove nan
             if ((typeof(value) === "number") && value < 0) {   
                 return null}
             if (!value && value != 0) return null
         }
-
-        console.log(inputValues)
 
         return inputValues;
 

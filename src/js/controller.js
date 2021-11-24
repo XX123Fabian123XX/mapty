@@ -66,7 +66,6 @@ const initWorkoutListener = () => {
         // if it was not clicked it will be null
         const crossElement = (clickedElement.closest(DOMElements.get("crossClass")))
         if (crossElement) {
-            console.log(`Cross leement ${crossElement.parentNode.getAttribute("data-id")}`)
             deleteWorkout(crossElement.parentNode.getAttribute("data-id"))
             return
         }
@@ -108,7 +107,7 @@ const loadAndRenderLocalStorageData = function() {
 
 
 // function zum initialisieren
-const init = async () => {
+export const init = async () => {
 
     // gets the geolocation coordinates from the user
     const coords = await getLocation();
@@ -130,12 +129,5 @@ const init = async () => {
     initWorkoutListener();    
 }
 
-init();
 
-if(module.hot) {
-    module.hot.accept();
-}
 
-Promise.resolve('test').then(data => {
-    console.log(data)
-})
